@@ -80,11 +80,6 @@ public class PercolationVisualizer {
             draw(perc, n);
             StdDraw.show();
             StdDraw.pause(DELAY);
-            for(int out = 1; out <= n; out++){
-                for(int inside = 1; inside <= n; inside++){
-                    System.out.println("( " + out + ", " + inside + "): " + perc.quickFind.find(perc.queryIndex(out, inside)));
-                }
-            }
         }
     }
 }

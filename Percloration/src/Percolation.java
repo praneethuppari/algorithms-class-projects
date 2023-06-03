@@ -3,9 +3,15 @@ import edu.princeton.cs.algs4.QuickFindUF;
 public class Percolation {
 
     public QuickFindUF quickFind;
-    private boolean[] open;
+    private boolean[] open; 
+    /*
+     * 0 = closed
+     * 1 = open
+     * 2 = full
+     */
     int openSites;
     int sites;
+    boolean percolated;
 
     // creates n-by-n grid, with all sites initially blocked
     public Percolation(int n) {
@@ -15,10 +21,10 @@ public class Percolation {
             throw new IllegalArgumentException("n is less than or equal to 0");
         }
 
-        quickFind = new QuickFindUF((n*n)+2);
-        open = new boolean[(n*n)+2];
+        quickFind = new QuickFindUF((n*n)+1);
+        open = new boolean[(n*n)+1];
         open[0] = true;
-        open[(n*n)+1] = true;
+        percolated = false;
         openSites = 0;
     }
 
@@ -50,15 +56,19 @@ public class Percolation {
 
         int index = queryIndex(row, col);
         boolean isOpen = open[index];
+        boolean bottomRowOpen = false;
+
         if(isOpen == false){
             openSites++;
             open[index] = true;
 
-            if(this.isOpen(row-1, col)){
+            if((row > 1 && this.isOpen(row-1, col)) || (row==1)){
                 quickFind.union(index, queryIndex(row-1, col)); // top
+                
             }
-            if(this.isOpen(row+1, col)){
+            if(row < sites && this.isOpen(row+1, col)){
                 quickFind.union(index, queryIndex(row+1, col)); // bottom
+                bottomRowOpen = true;
             }
             
             if(col < sites && this.isOpen(row, col+1)){
@@ -67,6 +77,11 @@ public class Percolation {
                 
             if(col > 1 && this.isOpen(row, col-1)){
                 quickFind.union(index, queryIndex(row, col-1)); // left
+
+            }
+
+            if(this.isFull(row, col) && ((row == (sites)) || bottomRowOpen)){
+                percolated = true;
             }
         }
 
@@ -106,10 +121,7 @@ public class Percolation {
     
     // does the system percolate?
     public boolean percolates(){
-        if(quickFind.find((sites*sites)+1) == quickFind.find(0)){
-            return true;
-        }
-        return false;
+        return percolated;
     }
     
     // test client (optional)
