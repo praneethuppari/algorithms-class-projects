@@ -1,19 +1,18 @@
-import edu.princeton.cs.algs4.QuickFindUF;
+import edu.princeton.cs.algs4.WeightedQuickUnionUF;
 
 public class Percolation {
 
-    public QuickFindUF quickFind;
-    private boolean[] open; 
-    /*
-     * 0 = closed
-     * 1 = open
-     * 2 = full
-     */
-    int openSites;
-    int sites;
-    boolean percolated;
+    private WeightedQuickUnionUF quickFind;
+    private int[] open;
+    private int openSites;
+    private int sites;
+    private boolean percolated;
 
-    // creates n-by-n grid, with all sites initially blocked
+    /**
+     * @param n : number of rows and columns
+     * 
+     * creates n-by-n grid, with all sites initially blocked
+     */ 
     public Percolation(int n) {
 
         sites = n;
@@ -21,13 +20,20 @@ public class Percolation {
             throw new IllegalArgumentException("n is less than or equal to 0");
         }
 
-        quickFind = new QuickFindUF((n*n)+1);
-        open = new boolean[(n*n)+1];
-        open[0] = true;
+        quickFind = new WeightedQuickUnionUF((n*n)+1);
+        open = new int[(n*n)+1];
+        open[0] = 2;
         percolated = false;
         openSites = 0;
     }
 
+    /**
+     * Ensures the row and col given are within the bounds of 
+     * the nxn grid
+     * @param row : the row number
+     * @param col : the column number
+     * @return: true if the given row and column are within range
+     */
     private boolean validateIndices(int row, int col){
         if((row >= 1 && row <= sites) && (col >= 1 && col <= sites)){
             return true;
@@ -35,52 +41,91 @@ public class Percolation {
         return false;
     }
 
-    public int queryIndex(int row, int col){
+    /**
+     * Given the row and column, it returns the 2D index number
+     * for the array and quickFind object.
+     * @param row : row number
+     * @param col : column number
+     * @return : index within quickFind and array
+     */
+    private int queryIndex(int row, int col){
 
+        // top virtual site
         if(row == 0){
             return 0;
         }
-        else if(row == (sites + 1)){
-            return (sites*sites) + 1;
-        }
-        
+
+        //go to the end of the row and subtract based on the column
+        //given to get the index number
         return (row*sites) - (sites - col);
     }
     
     // opens the site (row, col) if it is not open already
-    public void open(int row, int col) throws IllegalArgumentException {
+    /**
+     * 
+     * @param row
+     * @param col
+     */
+    public void open(int row, int col) {
 
-        if( validateIndices(row, col) == false) {
+        if (validateIndices(row, col) == false) {
             throw new IllegalArgumentException("Row or Column out of prescribed range");
         }
 
         int index = queryIndex(row, col);
-        boolean isOpen = open[index];
-        boolean bottomRowOpen = false;
+        int isOpen = open[index];
 
-        if(isOpen == false){
+        if(isOpen == 0){
             openSites++;
-            open[index] = true;
 
-            if((row > 1 && this.isOpen(row-1, col)) || (row==1)){
-                quickFind.union(index, queryIndex(row-1, col)); // top
+            if(row == sites){
+                open[index] = 3;
+            }
+            else{
+                open[index] = 1;
+            }
+ 
+            if ((row > 1 && this.isOpen(row-1, col)) || (row==1)) {
+                int union = queryIndex(row-1, col);
+                int uRootStatus = open[quickFind.find(union)];
+                int indexRootStatus = open[quickFind.find(index)];
+                quickFind.union(index, union); // left
+                if (open[index] == 3 || uRootStatus == 3 || indexRootStatus == 3) {
+                    open[quickFind.find(index)] = 3;
+                }
                 
             }
-            if(row < sites && this.isOpen(row+1, col)){
-                quickFind.union(index, queryIndex(row+1, col)); // bottom
-                bottomRowOpen = true;
+            if (row < sites && this.isOpen(row+1, col)) {
+                int union = queryIndex(row+1, col);
+                int uRootStatus = open[quickFind.find(union)];
+                int indexRootStatus = open[quickFind.find(index)];
+                quickFind.union(index, union); // left
+                if(open[index] == 3 || uRootStatus == 3 || indexRootStatus == 3) {
+                    open[quickFind.find(index)] = 3;
+                }
             }
             
-            if(col < sites && this.isOpen(row, col+1)){
-                quickFind.union(index, queryIndex(row, col+1)); //right
+            if (col < sites && this.isOpen(row, col+1)) {
+                int union = queryIndex(row, col+1);
+                int uRootStatus = open[quickFind.find(union)];
+                int indexRootStatus = open[quickFind.find(index)];
+                quickFind.union(index, union); // left
+                if (open[index] == 3 || uRootStatus == 3 || indexRootStatus == 3) {
+                    open[quickFind.find(index)] = 3;
+                }
             }
                 
-            if(col > 1 && this.isOpen(row, col-1)){
-                quickFind.union(index, queryIndex(row, col-1)); // left
-
+            if (col > 1 && this.isOpen(row, col-1)) {
+                int union = queryIndex(row, col-1);
+                int uRootStatus = open[quickFind.find(union)];
+                int indexRootStatus = open[quickFind.find(index)];
+                quickFind.union(index, union); // left
+                if (open[index] == 3 || uRootStatus == 3 || indexRootStatus == 3) {
+                    open[quickFind.find(index)] = 3;
+                }
             }
 
-            if(this.isFull(row, col) && ((row == (sites)) || bottomRowOpen)){
+            if (this.isFull(row, col) && open[quickFind.find(index)] == 3){
                 percolated = true;
             }
         }
@@ -88,72 +133,39 @@ public class Percolation {
     }
     
     // is the site (row, col) open?
-    public boolean isOpen(int row, int col){
-        if(validateIndices(row, col)){
-            return open[queryIndex(row, col)];
+    public boolean isOpen(int row, int col) {
+
+        if (validateIndices(row, col)) {
+            return (open[queryIndex(row, col)] > 0);
         }
-        throw new IllegalArgumentException("Row or Col number is out of range");
-        
+        throw new IllegalArgumentException("Row or Col number is out of range"); 
     }
     
     // is the site (row, col) full?
-    public boolean isFull(int row, int col){
-        
-        if(validateIndices(row, col)){
+    public boolean isFull(int row, int col) {
+
+        if (validateIndices(row, col)) {
             int conElement = quickFind.find(queryIndex(row, col));
             int con2Element = quickFind.find(0);
-    
+
             return conElement == con2Element; 
         }
         throw new IllegalArgumentException("Row or Col is out of range");
-       
     }
 
-    // issue: 
-    // because of how it checks for fullness, because of the bottom site, it considers it full
-    // since they are in the same set. Any neighboring sites are also considered full because
-    // they are unioned with such block that isn't actually full but is at the bottom.
-    
     // returns the number of open sites
-    public int numberOfOpenSites(){
+    public int numberOfOpenSites() {
         return openSites;
     }
     
     // does the system percolate?
-    public boolean percolates(){
+    public boolean percolates() {
         return percolated;
     }
     
     // test client (optional)
-    public static void main(String[] args){
-        
-        Percolation perci = null;
-        try{
-            perci = new Percolation(4);
-            perci.open(1, 1);
-            perci.open(1, 2);
-            perci.open(2, 1);
-            perci.open(3, 1);
-            perci.open(4, 1);
-            int one = perci.quickFind.find(1);
-            int two = perci.quickFind.find(2);
-            int three = perci.quickFind.find(0);
-            if(one == two && one == three && perci.openSites == 5){
-                System.out.println("Both are connected");
-            }
-            if(perci.percolates() == true){
-                System.out.println("Percolates seems to work");
-            }
+    public static void main(String[] args) {}
 
-        }
-        catch (IllegalArgumentException e){
-            System.out.println(e.getMessage());
-        }
-
-
-
-
-    }
 }
     
     
